@@ -15,6 +15,7 @@ COMMENT_RE = re.compile(
     r"(.+?)\s+upvoted\s+(\d+)\s+times",
 )
 CHOICE_RE = re.compile(r"^[A-G]\.\s")
+SUGGESTED_RE = re.compile(r"^Suggested Answer:\s*(.+?)\s*$")
 
 
 def parse_block(block: str) -> Optional[dict]:
@@ -36,12 +37,19 @@ def parse_block(block: str) -> Optional[dict]:
     marker_idx = None
     answer_line_idx = None
     all_q_idx = None
+    suggested_answer = None
     for i, line in enumerate(lines):
         stripped = line.strip()
         if stripped == "[All AZ-204 Questions]":
             all_q_idx = i
         if stripped.startswith("Suggested Answer:"):
             marker_idx = i
+            sa_m = SUGGESTED_RE.match(stripped)
+            if sa_m:
+                raw = sa_m.group(1).strip()
+                clean = raw.replace("\U0001f5f3\ufe0f", "").strip()
+                if clean:
+                    suggested_answer = clean
         if stripped.startswith("**Answer:"):
             answer_line_idx = i
             break
@@ -74,6 +82,7 @@ def parse_block(block: str) -> Optional[dict]:
         "qnum": qnum,
         "question": question_text,
         "choices": choices,
+        "suggested_answer": suggested_answer,
         "answer": answer,
         "link": link,
         "comment": comment,
@@ -92,7 +101,9 @@ def build_front(card: dict) -> str:
 
 def build_back(card: dict) -> str:
     h = html.escape
-    parts = [f'<b>{h(card["answer"])}</b>']
+    parts = [f'<b>Answer: {h(card["answer"])}</b>']
+    if card["suggested_answer"]:
+        parts.append(f'<br><b>Suggested Answer: {h(card["suggested_answer"])}</b>')
     if card["comment"]:
         username, text, votes = card["comment"]
         parts.append("<br><br>")
