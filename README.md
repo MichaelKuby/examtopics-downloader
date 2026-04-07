@@ -237,3 +237,12 @@ D. 172.23.104.4
 
 ----------------------------------------
 ```
+
+## Anki Flashcard Export
+
+Want to turn the downloaded questions into Anki flashcards? See [`scripts/README.md`](scripts/README.md) for details. Quick version:
+
+```bash
+python3 scripts/exam-to-anki.py output.md
+# Import output-cleaned-anki.txt into Anki
+```
