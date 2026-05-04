@@ -17,6 +17,27 @@ import (
 	"github.com/cheggaaa/pb/v3"
 )
 
+func collectImageURLs(sel *goquery.Selection) []string {
+	var urls []string
+	seen := make(map[string]struct{})
+	sel.Each(func(_ int, s *goquery.Selection) {
+		src, ok := s.Attr("src")
+		if !ok {
+			return
+		}
+		abs := utils.AbsoluteURL(src)
+		if abs == "" {
+			return
+		}
+		if _, dup := seen[abs]; dup {
+			return
+		}
+		seen[abs] = struct{}{}
+		urls = append(urls, abs)
+	})
+	return urls
+}
+
 func getDataFromLink(link string) *models.QuestionData {
 	doc, err := ParseHTML(link, *client)
 	if err != nil {
@@ -35,15 +56,20 @@ func getDataFromLink(link string) *models.QuestionData {
 		answer = string(strings.ReplaceAll(strings.ReplaceAll(answerText, " ", ""), "\n", "")[0])
 	}
 
+	questionImages := collectImageURLs(doc.Find(".question-body > p.card-text img"))
+	answerImages := collectImageURLs(doc.Find(".question-body .question-answer img"))
+
 	return &models.QuestionData{
-		Title:        utils.CleanText(doc.Find("h1").Text()),
-		Header:       strings.ReplaceAll(strings.TrimSpace(doc.Find(".question-discussion-header").Text()), "\t", ""),
-		Content:      utils.CleanText(doc.Find(".card-text").Text()),
-		Questions:    allQuestions,
-		Answer:       answer,
-		Timestamp:    utils.CleanText(doc.Find(".discussion-meta-data > i").Text()),
-		QuestionLink: link,
-		Comments:     utils.CleanText(doc.Find(".discussion-container").Text()),
+		Title:          utils.CleanText(doc.Find("h1").Text()),
+		Header:         strings.ReplaceAll(strings.TrimSpace(doc.Find(".question-discussion-header").Text()), "\t", ""),
+		Content:        utils.CleanText(doc.Find(".card-text").Text()),
+		Questions:      allQuestions,
+		Answer:         answer,
+		Timestamp:      utils.CleanText(doc.Find(".discussion-meta-data > i").Text()),
+		QuestionLink:   link,
+		Comments:       utils.CleanText(doc.Find(".discussion-container").Text()),
+		QuestionImages: questionImages,
+		AnswerImages:   answerImages,
 	}
 }
 
@@ -101,15 +127,30 @@ func getJSONFromLink(link string) []*models.QuestionData {
 		name := utils.GetNameFromLink(link)
 		counter++
 
+		questionImages := make([]string, 0, len(q.QuestionImages))
+		for _, img := range q.QuestionImages {
+			if abs := utils.AbsoluteURL(img); abs != "" {
+				questionImages = append(questionImages, abs)
+			}
+		}
+		answerImages := make([]string, 0, len(q.AnswerImages))
+		for _, img := range q.AnswerImages {
+			if abs := utils.AbsoluteURL(img); abs != "" {
+				answerImages = append(answerImages, abs)
+			}
+		}
+
 		questions = append(questions, &models.QuestionData{
-			Title:        "Examtopics " + strings.ReplaceAll(name, ".json?ref=main", "") + " question #" + strconv.Itoa(counter),
-			Header:       q.QuestionText,
-			Content:      strings.Join(q.QuestionImages, "\n"),
-			Questions:    []string{choicesHeader},
-			Answer:       q.Answer,
-			Timestamp:    q.Timestamp,
-			QuestionLink: q.URL,
-			Comments:     utils.CleanText(comments),
+			Title:          "Examtopics " + strings.ReplaceAll(name, ".json?ref=main", "") + " question #" + strconv.Itoa(counter),
+			Header:         q.QuestionText,
+			Content:        "",
+			Questions:      []string{choicesHeader},
+			Answer:         q.Answer,
+			Timestamp:      q.Timestamp,
+			QuestionLink:   q.URL,
+			Comments:       utils.CleanText(comments),
+			QuestionImages: questionImages,
+			AnswerImages:   answerImages,
 		})
 	}
 

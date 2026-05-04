@@ -8,17 +8,26 @@ Python scripts that convert downloaded ExamTopics `.md` files into [Anki](https:
 python3 scripts/exam-to-anki.py output.md
 ```
 
-This produces `output-cleaned-anki.txt`, a tab-separated file ready to import into Anki.
+This produces:
+
+- `output-cleaned-anki.txt` — a tab-separated file ready to import into Anki.
+- `output-cleaned-anki-media/` — a folder of downloaded question/answer images (only created when the source file has images).
 
 ## Importing into Anki
 
-1. Open Anki and go to **File > Import**.
-2. Select the generated `-anki.txt` file.
-3. Set the separator to **Tab**.
-4. Map the fields: Column 1 → Front, Column 2 → Back, Column 3 → Tags.
-5. Click **Import**.
+1. If `*-anki-media/` was produced, copy its contents into Anki's `collection.media` folder so images render in cards.
+   - macOS: `~/Library/Application Support/Anki2/<profile>/collection.media`
+   - Linux: `~/.local/share/Anki2/<profile>/collection.media`
+   - Windows: `%APPDATA%\Anki2\<profile>\collection.media`
+2. Open Anki and go to **File > Import**.
+3. Select the generated `-anki.txt` file.
+4. Set the separator to **Tab**.
+5. Map the fields: Column 1 → Front, Column 2 → Back, Column 3 → Tags.
+6. Click **Import**.
 
 Cards are tagged by topic (e.g. `topic-1`, `topic-5`) so you can study by section.
+
+Images are embedded as `<img src="examtopics_*.png">` tags. The filenames are content-stable (derived from the source URL), so re-running the export is idempotent and won't duplicate media in Anki.
 
 ## What Each Script Does
 

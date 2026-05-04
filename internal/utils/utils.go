@@ -140,6 +140,30 @@ func AddToBaseUrl(addString string) string {
 	return fmt.Sprintf("https://www.examtopics.com%s", addString)
 }
 
+// AbsoluteURL normalizes an image src into an absolute URL suitable for use in
+// markdown/HTML. It handles the three forms ExamTopics uses:
+//   - absolute (https://...)        -> returned unchanged
+//   - protocol-relative (//host/x)  -> prefixed with https:
+//   - root-relative (/assets/x)     -> prefixed with https://www.examtopics.com
+//
+// Empty inputs return "".
+func AbsoluteURL(src string) string {
+	src = strings.TrimSpace(src)
+	if src == "" {
+		return ""
+	}
+	if strings.HasPrefix(src, "http://") || strings.HasPrefix(src, "https://") {
+		return src
+	}
+	if strings.HasPrefix(src, "//") {
+		return "https:" + src
+	}
+	if strings.HasPrefix(src, "/") {
+		return "https://www.examtopics.com" + src
+	}
+	return "https://www.examtopics.com/" + src
+}
+
 func CreateRateLimiter(rps float64) *time.Ticker {
 	interval := time.Duration(float64(time.Second) / rps)
 	return time.NewTicker(interval)

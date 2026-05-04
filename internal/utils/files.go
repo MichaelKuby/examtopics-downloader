@@ -54,7 +54,16 @@ func WriteData(dataList []models.QuestionData, outputPath string, commentBool bo
 			fmt.Fprintf(file, "%s\n\n", question)
 		}
 
+		for _, img := range data.QuestionImages {
+			fmt.Fprintf(file, "![](%s)\n\n", img)
+		}
+
 		fmt.Fprintf(file, "**Answer: %s**\n\n", data.Answer)
+
+		for _, img := range data.AnswerImages {
+			fmt.Fprintf(file, "![answer](%s)\n\n", img)
+		}
+
 		fmt.Fprintf(file, "**Timestamp: %s**\n\n", data.Timestamp)
 		fmt.Fprintf(file, "[View on ExamTopics](%s)\n\n", data.QuestionLink)
 

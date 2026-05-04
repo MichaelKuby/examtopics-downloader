@@ -244,5 +244,8 @@ Want to turn the downloaded questions into Anki flashcards? See [`scripts/README
 
 ```bash
 python3 scripts/exam-to-anki.py output.md
+# Copy output-cleaned-anki-media/* into Anki's collection.media folder (if present)
 # Import output-cleaned-anki.txt into Anki
 ```
+
+If the exam includes images (exhibits, hotspot/drag-drop diagrams, etc.), the export step also produces an `*-anki-media/` folder. Copy its contents into your Anki profile's `collection.media` folder before importing the `.txt` so the embedded `<img>` tags render in your cards.
