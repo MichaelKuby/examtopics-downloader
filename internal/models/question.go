@@ -1,14 +1,16 @@
 package models
 
 type QuestionData struct {
-	Title        string
-	Header       string
-	Content      string
-	Questions    []string
-	Answer       string
-	Timestamp    string
-	QuestionLink string
-	Comments     string
+	Title          string
+	Header         string
+	Content        string
+	Questions      []string
+	Answer         string
+	Timestamp      string
+	QuestionLink   string
+	Comments       string
+	QuestionImages []string
+	AnswerImages   []string
 }
 
 type FileInfo struct {
