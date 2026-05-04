@@ -49,8 +49,26 @@ RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
 
 def normalize_question_text(text: str) -> str:
     """Normalize question text readability while preserving meaning."""
+    protected: dict[str, str] = {}
+
+    def protect(pattern: str, prefix: str) -> None:
+        nonlocal text
+        idx = len(protected)
+
+        def repl(m: re.Match[str]) -> str:
+            nonlocal idx
+            key = f"__{prefix}_{idx}__"
+            protected[key] = m.group(0)
+            idx += 1
+            return key
+
+        text = re.sub(pattern, repl, text, flags=re.IGNORECASE)
+
     text = BOILERPLATE_NOTE_RE.sub("", text)
     text = SERIES_NOTE_RE.sub("", text)
+    # Protect tokens where dots are semantic and spacing must not change.
+    protect(r"https?://\S+", "URL")
+    protect(r"\b(?:e\.g\.|i\.e\.|etc\.|vs\.|mr\.|mrs\.|ms\.|dr\.|prof\.|sr\.|jr\.)", "ABBR")
     # Ensure period-delimited sentences don't get glued together (e.g. "domain.You").
     text = re.sub(r"\.(?=[A-Za-z0-9])", ". ", text)
     # Put solution scenarios on a dedicated line.
@@ -58,6 +76,8 @@ def normalize_question_text(text: str) -> str:
     # Collapse excessive spaces while preserving newlines for display formatting.
     text = re.sub(r"[ \t]{2,}", " ", text)
     text = re.sub(r" *\n *", "\n", text)
+    for key, value in protected.items():
+        text = text.replace(key, value)
     return text.strip()
 
 
