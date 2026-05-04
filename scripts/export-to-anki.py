@@ -16,6 +16,13 @@ COMMENT_RE = re.compile(
 )
 CHOICE_RE = re.compile(r"^[A-G]\.\s")
 SUGGESTED_RE = re.compile(r"^Suggested Answer:\s*(.+?)\s*$")
+ALL_QUESTIONS_RE = re.compile(r"^\[All .+ Questions\]$")
+BOILERPLATE_NOTE_RE = re.compile(
+    r"Note:\s+The question is included in a number of questions that depicts the "
+    r"identical set-up\.\s+However,\s+every question has a distinctive result\.\s+"
+    r"Establish if the solution satisfies the requirements\.\s*",
+    re.IGNORECASE,
+)
 
 
 def parse_block(block: str) -> Optional[dict]:
@@ -40,7 +47,7 @@ def parse_block(block: str) -> Optional[dict]:
     suggested_answer = None
     for i, line in enumerate(lines):
         stripped = line.strip()
-        if stripped == "[All AZ-204 Questions]":
+        if ALL_QUESTIONS_RE.match(stripped):
             all_q_idx = i
         if stripped.startswith("Suggested Answer:"):
             marker_idx = i
@@ -61,6 +68,8 @@ def parse_block(block: str) -> Optional[dict]:
         l.strip() for l in lines[all_q_idx + 1 : marker_idx] if l.strip()
     ]
     question_text = " ".join(question_lines)
+    question_text = BOILERPLATE_NOTE_RE.sub("", question_text).strip()
+    question_text = re.sub(r"\s{2,}", " ", question_text)
 
     choices = []
     for line in lines[marker_idx + 1 : answer_line_idx]:
