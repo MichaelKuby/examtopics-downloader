@@ -29,6 +29,14 @@ BOILERPLATE_NOTE_RE = re.compile(
     r"Establish if the solution satisfies the requirements\.\s*",
     re.IGNORECASE,
 )
+SERIES_NOTE_RE = re.compile(
+    r"Note:\s+This question is part of a series of questions that present the same scenario\.\s+"
+    r"Each question in the series contains a unique solution that might meet the stated goals\.\s+"
+    r"Some questions?\s+sets might have more than one correct solution,\s+while others might not have a correct solution\.\s*"
+    r"After you answer a question in this section,\s+you will NOT be able to return to it\.\s+"
+    r"As a result,\s+these questions will not appear in the review screen\.\s*",
+    re.IGNORECASE,
+)
 IMAGE_RE = re.compile(r"^!\[(?P<alt>[^\]]*)\]\((?P<url>https?://[^)\s]+)\)\s*$")
 DEFAULT_IMAGE_EXT = ".png"
 USER_AGENT = "examtopics-downloader/1.0 (+https://github.com/thatonecodes/examtopics-downloader)"
@@ -37,6 +45,20 @@ IMAGE_INITIAL_BACKOFF_SEC = 1.0
 IMAGE_BACKOFF_FACTOR = 2.0
 IMAGE_JITTER_MAX_SEC = 0.25
 RETRYABLE_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def normalize_question_text(text: str) -> str:
+    """Normalize question text readability while preserving meaning."""
+    text = BOILERPLATE_NOTE_RE.sub("", text)
+    text = SERIES_NOTE_RE.sub("", text)
+    # Ensure period-delimited sentences don't get glued together (e.g. "domain.You").
+    text = re.sub(r"\.(?=[A-Za-z0-9])", ". ", text)
+    # Put solution scenarios on a dedicated line.
+    text = re.sub(r"\s*Solution:\s*", "\n\nSolution: ", text)
+    # Collapse excessive spaces while preserving newlines for display formatting.
+    text = re.sub(r"[ \t]{2,}", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    return text.strip()
 
 
 def split_text_and_images(lines: list[str], expect_alt: str) -> tuple[list[str], list[str]]:
@@ -115,9 +137,7 @@ def parse_block(block: str) -> Optional[dict]:
             continue
         question_text_lines.append(line)
 
-    question_text = " ".join(question_text_lines)
-    question_text = BOILERPLATE_NOTE_RE.sub("", question_text).strip()
-    question_text = re.sub(r"\s{2,}", " ", question_text)
+    question_text = normalize_question_text(" ".join(question_text_lines))
 
     _, answer_image_urls = split_text_and_images(
         lines[answer_line_idx + 1 :], expect_alt="answer"
@@ -224,15 +244,15 @@ def materialize_images(card: dict, media_dir: str, cache: dict[str, Optional[str
 def build_front(card: dict) -> str:
     h = html.escape
     parts = [f'<b>Topic {card["topic"]} - Question {card["qnum"]}</b><br><br>']
-    parts.append(h(card["question"]))
-    if card["choices"]:
-        parts.append("<br><br>")
-        parts.append("<br>".join(h(c) for c in card["choices"]))
+    parts.append(h(card["question"]).replace("\n", "<br>"))
     if card.get("question_image_files"):
         parts.append("<br><br>")
         parts.append(
             "<br>".join(f'<img src="{h(f)}">' for f in card["question_image_files"])
         )
+    if card["choices"]:
+        parts.append("<br><br>")
+        parts.append("<br>".join(h(c) for c in card["choices"]))
     return "".join(parts)
 
 
